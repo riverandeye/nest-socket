@@ -10,7 +10,7 @@ import {
 import { Socket } from 'socket.io';
 import Message from '../model/message';
 
-@WebSocketGateway()
+@WebSocketGateway(4000, { path: '/api/socket.io' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server;
   users = 0;
@@ -36,6 +36,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() message: string,
   ): Promise<void> {
+    console.log(socket);
     const messageForm: Message = JSON.parse(message);
 
     if (!messageForm.room || !messageForm.name || !messageForm.message) {
