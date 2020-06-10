@@ -8,6 +8,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
+import Message from '../model/message';
 
 @WebSocketGateway()
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -19,7 +20,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.users++;
 
     // Notify connected clients of current users
-    this.server.emit('users', this.users);
+    this.server.emit('enter', this.users);
   }
 
   async handleDisconnect(): Promise<void> {
@@ -27,36 +28,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.users--;
 
     // Notify connected clients of current users
-    this.server.emit('users', this.users);
+    this.server.emit('leave', this.users);
   }
 
-  @SubscribeMessage('createRoom')
-  async createRoom(
-    @ConnectedSocket() socket: Socket,
-    message: string,
-  ): Promise<void> {
-    socket.broadcast.emit('chat', message);
-  }
-
-  @SubscribeMessage('joinRoom')
-  async joinRoom(@ConnectedSocket() socket: Socket, message): Promise<void> {
-    socket.join('hello').emit('chat', 'Ssibal');
-    console.log('어떤놈 들어왔따');
-  }
-
-  @SubscribeMessage('chat')
+  @SubscribeMessage('message')
   async onChat(
     @ConnectedSocket() socket: Socket,
     @MessageBody() message: string,
   ): Promise<void> {
-    socket.broadcast.emit('chat', message);
-  }
+    const messageForm: Message = JSON.parse(message);
 
-  @SubscribeMessage('disconnect')
-  async onClose(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() message: string,
-  ): Promise<void> {
-    socket.broadcast.emit('chat', '어떤놈 나갔다');
+    if (!messageForm.room || !messageForm.name || !messageForm.message) {
+      return;
+    }
+
+    console.log(messageForm.message);
+    socket.join(messageForm.room).broadcast.emit('chat', message);
   }
 }
